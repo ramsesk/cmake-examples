@@ -10,6 +10,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    container:
+      image: matrim/cmake-examples:3.5.1
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
