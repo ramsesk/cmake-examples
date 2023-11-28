@@ -27,7 +27,7 @@ jobs:
       - name: Prepare build depenencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential sudo cmake libboost-all-dev libprotobuf-dev protobuf-compiler clang-3.6 clang-format-3.6 \
+          sudo apt-get install -y build-essential sudo cmake libboost-all-dev libprotobuf-dev protobuf-compiler clang-3.6 \
               ninja-build wget git python3 python3-pip
           sudo pip3 install conan
       - name: Run build-wrapper on each subproject
