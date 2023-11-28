@@ -30,19 +30,22 @@ jobs:
           sudo apt-get install -y build-essential sudo cmake libboost-all-dev libprotobuf-dev protobuf-compiler clang-3.6 \
               ninja-build wget git python3 python3-pip
           sudo pip3 install conan
-      - name: Run build-wrapper on each subproject
+      - name: Run build-wrapper on each subproject in folders_build_sonar.txt
         run: |
           mkdir -p build
           cmake --version
-          # Find all directories containing a CMakeLists.txt and run build-wrapper for each
-          find . -name CMakeLists.txt -exec dirname {} \; | while read -r dir; do
-            clean_dir=$(echo "$dir" | sed 's|^\./||')
-            echo "Building in $clean_dir"
-            mkdir -p "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$clean_dir"
-            cmake -S "$dir" -B "build/$clean_dir"
-            build-wrapper-linux-x86-64 --out-dir "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$dir" cmake --build "build/$clean_dir" --config Release
+          # Read each line in .github/workflows/folders_build_sonar.txt and run build-wrapper for each
+          cat ./.github/workflows/folders_build_sonar.txt | while read -r dir; do
+            if [ -d "$dir" ]; then
+              clean_dir=$(echo "$dir" | sed 's|^\./||')
+              echo "Building in $clean_dir"
+              mkdir -p "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$clean_dir"
+              cmake -S "$dir" -B "build/$clean_dir"
+              build-wrapper-linux-x86-64 --out-dir "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$dir" cmake --build "build/$clean_dir" --config Release
+            else
+              echo "Directory $dir does not exist, skipping"
+            fi
           done
-
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
