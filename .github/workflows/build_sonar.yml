@@ -10,8 +10,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container:
-      image: matrim/cmake-examples:3.5.1
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
@@ -26,7 +24,12 @@ jobs:
         run: |
           mkdir -p ${{github.workspace}}/${{env.BUILD_WRAPPER_OUT_DIR}}
           echo "BUILD_WRAPPER_OUT_DIR_ABSOLUTE=${{ github.workspace }}/${{ env.BUILD_WRAPPER_OUT_DIR }}" >> $GITHUB_ENV
-
+      - name: Prepare build depenencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential sudo cmake libboost-all-dev libprotobuf-dev protobuf-compiler clang-3.6 clang-format-3.6 \
+              ninja-build wget git python3 python3-pip
+          pip3 install conan
       - name: Run build-wrapper on each subproject
         run: |
           mkdir -p build
