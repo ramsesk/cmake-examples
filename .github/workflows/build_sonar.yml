@@ -1,0 +1,61 @@
+name: Build + Sonar 
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
+      - name: Prepare Sonar Build Wrapper dir
+        run: |
+          mkdir -p ${{github.workspace}}/${{env.BUILD_WRAPPER_OUT_DIR}}
+          echo "BUILD_WRAPPER_OUT_DIR_ABSOLUTE=${{ github.workspace }}/${{ env.BUILD_WRAPPER_OUT_DIR }}" >> $GITHUB_ENV
+      - name: Prepare build depenencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential sudo cmake libboost-all-dev libprotobuf-dev protobuf-compiler clang-3.6 \
+              ninja-build wget git python3 python3-pip
+          sudo pip3 install conan
+      - name: Run build-wrapper on each subproject in folders_build_sonar.txt
+        run: |
+          mkdir -p build
+          cmake --version
+          # Read each line in .github/workflows/folders_build_sonar.txt and run build-wrapper for each
+          cat ./.github/workflows/folders_build_sonar.txt | while read -r dir; do
+            if [ -d "$dir" ]; then
+              clean_dir=$(echo "$dir" | sed 's|^\./||')
+              echo "Building in $clean_dir"
+              mkdir -p "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$clean_dir"
+              cmake -S "$dir" -B "build/$clean_dir"
+              build-wrapper-linux-x86-64 --out-dir "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$dir" cmake --build "build/$clean_dir" --config Release
+            else
+              echo "Directory $dir does not exist, skipping"
+            fi
+          done
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}"
+
+      - name: Export build dir when failed
+        uses: actions/upload-artifact@v2
+        if: always()
+        with: 
+          name: build-dir
+          path: "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}"
