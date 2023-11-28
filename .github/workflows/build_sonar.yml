@@ -31,7 +31,7 @@ jobs:
           cmake --version
           # Find all directories containing a CMakeLists.txt and run build-wrapper for each
           find . -name CMakeLists.txt -exec dirname {} \; | while read -r dir; do
-            clean_dir=$(echo "$dir" | 's|^\./||')
+            clean_dir=$(echo "$dir" | sed 's|^\./||')
             echo "Building in $clean_dir"
             mkdir -p "${{ env.BUILD_WRAPPER_OUT_DIR_ABSOLUTE }}/$clean_dir"
             cmake -S "$dir" -B "build/$clean_dir"
